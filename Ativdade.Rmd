@@ -1,0 +1,339 @@
+---
+title: "Envelope Simulado e Erro Quadrático Médio"
+author: "Marlon Rogério"
+date: "12/22/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Envelope Simulado - Atividade 01
+
+```{r}
+## Carregamento dos pacotes necessários
+
+rm(list=ls(all=TRUE))
+# install.packages("sn")
+# install.packages("fGarch")
+# install.packages("hnp")
+
+require (sn)
+require (fGarch)
+require (hnp)
+require(gamlss)
+```
+
+
+```{r}
+## Definição do workdir e leitura dos dados de interesse
+setwd("~/")
+dados = read.table("~/apps/esquema_fatorial/A_FatCruz_ex2.txt", header = TRUE)
+y = dados$Y
+y
+```
+
+
+```{r}
+# Montagem do modelo
+m1 = gamlss(y ~ 1, family = "NO", data = dados)
+summary(m1)
+# Captura dos residuos do modelo
+r = residuals(m1)
+shapiro.test(r)
+```
+
+```{r}
+res_quant <- function(obj){
+  qnorm(pNO(q     = obj$y, 
+            mu    = obj$mu.fv, 
+            sigma = obj$sigma.fv))
+}
+
+```
+
+```{r}
+d.fun <- function(obj) res_quant(obj) # this is the default if no
+
+```
+
+
+```{r}
+s.fun <- function(n, obj) {
+  mu <- obj$mu.fv
+  sig <- obj$sigma.fv
+  rNO(n, mu=mu, sigma=sig)
+}
+```
+
+```{r}
+my.data <- data.frame(y)
+f.fun <- function(y.) gamlss(y. ~ 1, family= "NO", data=my.data)
+
+```
+
+```{r}
+# motagem do envelope simulado
+my.hnp <- hnp(m1,newclass=TRUE, diagfun=d.fun, simfun=s.fun,
+              fitfun=f.fun,halfnormal = F, print.on=TRUE, plot=FALSE, data=my.data)
+
+```
+
+```{r}
+# motagem do envelope simulado
+plot(my.hnp, main="Distribuição Normal", xlab="Half-normal scores",
+     ylab="Quantiles residuals", legpos="topleft")
+
+```
+
+
+## Erro Quadrático Médio - Atividade 02.1
+
+```{r}
+## Carregamento dos pacotes necessários
+rm(list=ls(all=TRUE))
+# install.packages("sn")
+# install.packages("fGarch")
+# install.packages("hnp")
+
+require (sn)
+require (fGarch)
+require (hnp)
+```
+
+```{r}
+## Seta o diretório do projeot "wordir"
+setwd("~/")
+dados = read.delim("~/apps/esquema_fatorial/A_FatCruz_ex2.txt", header = TRUE)
+dados
+y <- dados$Y
+y
+```
+
+```{r}
+n = 10
+#n = 30
+#n = 100
+mu = mean(y)
+mu
+sigma = 40
+```
+
+```{r}
+y <- rnorm(n, mu, sigma)
+y
+
+mean(y)
+sd(y)
+hist(y)
+```
+
+```{r}
+logvero <- function(param, y) {
+  mu = param[1]
+  sigma = param[2]
+  lv = log((1/(sigma*sqrt(2*pi)))*exp(-0.5*((y - mu)/sigma)^2))
+  soma = -sum(lv)
+  return(soma)
+}
+```
+
+```{r}
+N = 1000
+T0 = NULL
+T1 = NULL
+```
+
+```{r}
+for (i in 1:N){
+  y = rnorm(n, mu, sigma)
+  fit1 <- optim(par = c(mean(y),sd(y)),logvero,
+                y = y,
+                method = "BFGS",
+                hessian = TRUE)
+  
+  T0[i] = fit1$par[1]
+  T1[i] = fit1$par[2]
+}
+```
+
+```{r}
+T0
+```
+
+```{r}
+T1
+```
+
+```{r}
+vicio_l = mean(T0) - mu; 
+mean(T0)
+vicio_l
+EQM_l = var(T0) + vicio_l^2; EQM_l
+vicio_s = mean(T1) - sigma
+EQM_s = var(T1) + vicio_s^2
+```
+
+```{r}
+Tabela <- data.frame("Vícios" = c(vicio_l, vicio_s),
+                     "EQMs" = c(EQM_l, EQM_s),
+                     "Estimativa" = c(mean(T0), mean(T1)),
+                     "Verdadeiro" = c(mu, sigma),
+                     row.names = c("mu", "Sigma"))
+```
+
+```{r}
+Tabela
+```
+
+
+```{r}
+#n = 10
+n = 30
+#n = 100
+mu = mean(y)
+mu
+sigma = 40
+```
+
+```{r}
+y <- rnorm(n, mu, sigma)
+y
+
+mean(y)
+sd(y)
+hist(y)
+```
+
+```{r}
+logvero <- function(param, y) {
+  mu = param[1]
+  sigma = param[2]
+  lv = log((1/(sigma*sqrt(2*pi)))*exp(-0.5*((y - mu)/sigma)^2))
+  soma = -sum(lv)
+  return(soma)
+}
+```
+
+```{r}
+N = 1000
+T0 = NULL
+T1 = NULL
+```
+
+```{r}
+for (i in 1:N){
+  y = rnorm(n, mu, sigma)
+  fit1 <- optim(par = c(mean(y),sd(y)),logvero,
+                y = y,
+                method = "BFGS",
+                hessian = TRUE)
+  
+  T0[i] = fit1$par[1]
+  T1[i] = fit1$par[2]
+}
+```
+
+```{r}
+T0
+```
+
+```{r}
+T1
+```
+
+```{r}
+vicio_l = mean(T0) - mu; 
+mean(T0)
+vicio_l
+EQM_l = var(T0) + vicio_l^2; EQM_l
+vicio_s = mean(T1) - sigma
+EQM_s = var(T1) + vicio_s^2
+```
+
+```{r}
+Tabela <- data.frame("Vícios" = c(vicio_l, vicio_s),
+                     "EQMs" = c(EQM_l, EQM_s),
+                     "Estimativa" = c(mean(T0), mean(T1)),
+                     "Verdadeiro" = c(mu, sigma),
+                     row.names = c("mu", "Sigma"))
+```
+
+```{r}
+Tabela
+```
+
+```{r}
+#n = 10
+#n = 30
+n = 100
+mu = mean(y)
+mu
+sigma = 40
+```
+
+```{r}
+y <- rnorm(n, mu, sigma)
+y
+
+mean(y)
+sd(y)
+hist(y)
+```
+
+```{r}
+logvero <- function(param, y) {
+  mu = param[1]
+  sigma = param[2]
+  lv = log((1/(sigma*sqrt(2*pi)))*exp(-0.5*((y - mu)/sigma)^2))
+  soma = -sum(lv)
+  return(soma)
+}
+```
+
+```{r}
+N = 1000
+T0 = NULL
+T1 = NULL
+```
+
+```{r}
+for (i in 1:N){
+  y = rnorm(n, mu, sigma)
+  fit1 <- optim(par = c(mean(y),sd(y)),logvero,
+                y = y,
+                method = "BFGS",
+                hessian = TRUE)
+  
+  T0[i] = fit1$par[1]
+  T1[i] = fit1$par[2]
+}
+```
+
+```{r}
+T0
+```
+
+```{r}
+T1
+```
+
+```{r}
+vicio_l = mean(T0) - mu; 
+mean(T0)
+vicio_l
+EQM_l = var(T0) + vicio_l^2; EQM_l
+vicio_s = mean(T1) - sigma
+EQM_s = var(T1) + vicio_s^2
+```
+
+```{r}
+Tabela <- data.frame("Vícios" = c(vicio_l, vicio_s),
+                     "EQMs" = c(EQM_l, EQM_s),
+                     "Estimativa" = c(mean(T0), mean(T1)),
+                     "Verdadeiro" = c(mu, sigma),
+                     row.names = c("mu", "Sigma"))
+```
+
+```{r}
+Tabela
+```
